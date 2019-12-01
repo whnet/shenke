@@ -1,0 +1,4 @@
+<input style="width:40%;float: left;margin-right:10px" type="{{ widget.type }}" name="{{ widget.name }}"{% if widget.value != None %} value="{{ widget.value|stringformat:'s' }}"{% endif %}{% include "django/forms/widgets/attrs.html" %} />
+{% if widget.value != None %}
+<a class="default btn btn-primary" target="_blank" href="{{ widget.value|stringformat:'s' }}">点击查看</a>
+{% endif %}
