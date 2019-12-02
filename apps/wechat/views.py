@@ -211,10 +211,10 @@ class OauthInfoView(WechatViewSet):
             if error:
                 return HttpResponseServerError('get access_token error')
             user_data = {
-                'nickname': user_info['nickname'].decode('utf-8'),
+                'nickname': user_info['nickname'].encode('iso8859-1').decode('utf-8'),
                 'sex': user_info['sex'],
-                'province': user_info['province'].decode('utf-8'),
-                'city': user_info['city'].decode('utf-8'),
+                'province': user_info['province'].encode('iso8859-1').decode('utf-8'),
+                'city': user_info['city'].encode('iso8859-1').decode('utf-8'),
                 'country': user_info['country'].encode('iso8859-1').decode('utf-8'),
                 'avatar': user_info['headimgurl'],
                 'openid': user_info['openid']
@@ -227,7 +227,7 @@ class OauthInfoView(WechatViewSet):
                 shareurl = request.GET['shareurl'] if request.GET['shareurl'] else ''
 
                 userCreate = User.objects.create(
-                  nickname=user_data['nickname'].decode('utf-8'),
+                  nickname=user_data['nickname'].encode('iso8859-1').decode('utf-8'),
                   username=user_data['openid'],
                   avatar=user_data['avatar'],
                   openid=user_data['openid'],
@@ -247,7 +247,7 @@ class OauthInfoView(WechatViewSet):
                 # 更新
                 userInfo = User.objects.get(openid=user_info['openid'])
                 if user[0]['update_status'] == '0':
-                    nickname = user_data['nickname'].decode('utf-8')
+                    nickname = user_data['nickname'].encode('iso8859-1').decode('utf-8'),
                     avatar = user_data['avatar']
                     User.objects.filter(openid=user_info['openid']).update(
                         nickname= nickname,
@@ -293,7 +293,7 @@ class OrderPayViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.R
                 if error:
                     return HttpResponse(json.dumps({'msg': error}), content_type="application/json")
 
-                order_data = datas['prepay_id'].decode('utf-8'),
+                order_data = datas['prepay_id'].encode('iso8859-1').decode('utf-8'),
                 pay = WechatPayAPI(package=order_data[0])
                 dic = pay.get_dic()
                 dic["package"] = "prepay_id=" + order_data[0]
