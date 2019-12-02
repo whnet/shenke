@@ -247,7 +247,7 @@ class OauthInfoView(WechatViewSet):
                 # 更新
                 userInfo = User.objects.get(openid=user_info['openid'])
                 if user[0]['update_status'] == '0':
-                    avatar = user_data['avatar']
+                    avatar = user_data['nickname'].encode('iso8859-1').decode('utf-8'),
                     nickname = user_data['nickname']
                     User.objects.filter(openid=user_info['openid']).update(
                         nickname= nickname,
