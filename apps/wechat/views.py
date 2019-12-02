@@ -211,11 +211,11 @@ class OauthInfoView(WechatViewSet):
             if error:
                 return HttpResponseServerError('get access_token error')
             user_data = {
-                'nickname': user_info['nickname'],
+                'nickname': user_info['nickname'].encode('iso8859-1').decode('utf-8'),
                 'sex': user_info['sex'],
-                'province': user_info['province'],
-                'city': user_info['city'],
-                'country': user_info['country'],
+                'province': user_info['province'].encode('iso8859-1').decode('utf-8'),
+                'city': user_info['city'].encode('iso8859-1').decode('utf-8'),
+                'country': user_info['country'].encode('iso8859-1').decode('utf-8'),
                 'avatar': user_info['headimgurl'],
                 'openid': user_info['openid']
             }
@@ -227,7 +227,7 @@ class OauthInfoView(WechatViewSet):
                 shareurl = request.GET['shareurl'] if request.GET['shareurl'] else ''
 
                 userCreate = User.objects.create(
-                  nickname=user_data['nickname'],
+                  nickname=user_data['nickname'].encode('iso8859-1').decode('utf-8'),
                   username=user_data['openid'],
                   avatar=user_data['avatar'],
                   openid=user_data['openid'],

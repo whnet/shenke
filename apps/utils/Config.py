@@ -16,7 +16,7 @@ APPSECRET = '7455ded5222101272cd3e85ca2469e42'
 # 商户id
 MCH_ID = '1360752702'
 API_KEY = 'oof1m4jjaw30qoc1ysccbq2f55o3fh3i'
-Notify_url = 'http://b662rg.natappfree.cc/wechatnotify/'
+Notify_url = 'http://vip.putishu.ren/wechatnotify/'
 
 # ----------------------------------------------七牛平台---------------------------------------------- #
 QINIU_Ak = 'QEjVuwzVxzcj2yBU08pwbhYRnnDSJp5rpp6ZA52r'
