@@ -227,8 +227,7 @@ class OauthInfoView(WechatViewSet):
                 shareurl = request.GET['shareurl'] if request.GET['shareurl'] else ''
 
                 userCreate = User.objects.create(
-                  # nickname=user_data['nickname'].encode('iso8859-1').decode('utf-8'),
-                  nickname='眼里0',
+                  nickname=user_data['nickname'].encode('iso8859-1').decode('utf-8'),
                   username=user_data['openid'],
                   avatar=user_data['avatar'],
                   openid=user_data['openid'],
@@ -248,9 +247,8 @@ class OauthInfoView(WechatViewSet):
                 # 更新
                 userInfo = User.objects.get(openid=user_info['openid'])
                 if user[0]['update_status'] == '0':
-                    # avatar = user_data['avatar']
-                    avatar = '眼里1'
-                    nickname = user_data['nickname']
+                    nickname = user_data['nickname'].encode('iso8859-1').decode('utf-8')
+                    avatar = user_data['avatar']
                     User.objects.filter(openid=user_info['openid']).update(
                         nickname= nickname,
                         avatar= avatar,)
