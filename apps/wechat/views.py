@@ -210,36 +210,29 @@ class OauthInfoView(WechatViewSet):
             user_info, error = self.wechat_api.get_user_info(access_token, openid)
             if error:
                 return HttpResponseServerError('get access_token error')
-            user_data = {
-                'nickname': user_info['nickname'].encode('iso8859-1').decode('utf-8'),
-                'sex': user_info['sex'],
-                'province': user_info['province'].encode('iso8859-1').decode('utf-8'),
-                'city': user_info['city'].encode('iso8859-1').decode('utf-8'),
-                'country': user_info['country'].encode('iso8859-1').decode('utf-8'),
-                'avatar': user_info['headimgurl'],
-                'openid': user_info['openid']
-            }
-            user = User.objects.all().filter(openid=user_data['openid']).values('id','update_status')
-            if user.count() == 0:
-                # 分享OPENID,分享时间
-                shareopenid = request.GET['shareopenid'] if request.GET['shareopenid'] else ''
-                sharetime = request.GET['sharetime'] if request.GET['sharetime'] else ''
-                shareurl = request.GET['shareurl'] if request.GET['shareurl'] else ''
 
+            user = User.objects.all().filter(openid=user_info['openid']).values('id','update_status')
+            nickname = user_info['nickname'].encode('iso8859-1').decode('utf-8'),
+            if user.count() == 0:
+                # 数据库中没有数据，这次获取数据从user_info中得到
+                shareopenid = request.GET['shareopenid']
+                sharetime = request.GET['sharetime']
+                shareurl = request.GET['shareurl']
                 userCreate = User.objects.create(
-                  nickname=user_data['nickname'].encode('iso8859-1').decode('utf-8'),
-                  username=user_data['openid'],
-                  avatar=user_data['avatar'],
-                  openid=user_data['openid'],
+                  nickname=nickname[0],
+                  username=user_info['openid'],
+                  avatar=user_info['headimgurl'],
+                  openid=user_info['openid'],
                   upto=shareopenid,
                   sharetime=sharetime,
+                  shareurl=shareurl,
                   bindtime=int(time.time()),
                 )
                 re_dict = {}
                 payload = jwt_payload_handler(userCreate)
                 re_dict["mid"] = user[0]['id']
-                re_dict["avatar"] = user_data['avatar']
-                re_dict["openid"] = user_data['openid']
+                re_dict["avatar"] = user_info['headimgurl']
+                re_dict["openid"] = user_info['openid']
                 re_dict["token"] = jwt_encode_handler(payload)
                 resp = {'msg': 100, 'result': re_dict}
                 return HttpResponse(json.dumps(resp), content_type="application/json")
@@ -247,17 +240,16 @@ class OauthInfoView(WechatViewSet):
                 # 更新
                 userInfo = User.objects.get(openid=user_info['openid'])
                 if user[0]['update_status'] == '0':
-                    nickname = user_data['nickname'].encode('iso8859-1').decode('utf-8'),
-                    avatar = user_data['avatar']
+                    avatar = user_info['headimgurl']
                     User.objects.filter(openid=user_info['openid']).update(
-                        nickname= nickname,
+                        nickname= nickname[0],
                         avatar= avatar,)
 
                 re_dict = {}
                 payload = jwt_payload_handler(userInfo)
                 re_dict["mid"] = user[0]['id']
-                re_dict["avatar"] = user_data['avatar']
-                re_dict["openid"] = user_data['openid']
+                re_dict["avatar"] = user_info['headimgurl']
+                re_dict["openid"] = user_info['openid']
                 re_dict["token"] = jwt_encode_handler(payload)
                 resp = {'msg': 100, 'result': re_dict}
                 return HttpResponse(json.dumps(resp), content_type="application/json")

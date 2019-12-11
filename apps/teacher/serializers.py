@@ -70,7 +70,7 @@ class TeacherDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Teachers
-        exclude = ['area', 'wechat','bloodtype','msg','online','telphone','updated','display','created','rec','star','status']
+        exclude = ['area', 'wechat','bloodtype','msg','online','telphone','updated','display','created','star','status']
 
 
 class TInfoSerializer(serializers.ModelSerializer):
@@ -86,4 +86,4 @@ class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teachers
         exclude = ['area', 'wechat', 'bloodtype', 'msg', 'online', 'telphone', 'updated', 'display',
-                   'created', 'rec', 'star', 'status']
+                   'created', 'star', 'status']

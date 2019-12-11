@@ -10,6 +10,7 @@ from apps.utils.permissions import IsOwnerOrReadOnly
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework import mixins, permissions, authentication
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.response import Response
 
 
 class ShopPagination(PageNumberPagination):
@@ -51,3 +52,31 @@ class ShopViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
                 return List.objects.filter(teacher_id=m).order_by("-id")
             else:
                 return List.objects.order_by("-id")
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            list = []
+            serializer = self.get_serializer(page, many=True)
+            for key, value in enumerate(serializer.data):
+                if self.statusIsok(value['teacher']):
+                    list.append(serializer.data[key])
+            return self.get_paginated_response(list)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = []
+        if self.statusIsok(serializer.data['teacher']):
+            data = serializer.data
+        return Response(data)
+
+    def statusIsok(self,teacher_id):
+        teacher = Teachers.objects.get(id=teacher_id)
+        status = True if teacher.status == '1' else False
+        return status

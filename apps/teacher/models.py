@@ -34,7 +34,7 @@ class Teachers(models.Model):
     haopinglv = models.DecimalField(max_digits=8, default=0, decimal_places=2, verbose_name='好评率')
     display = models.CharField(max_length=1, choices=[('1', '上线'), ('0', '下线')], default=0, verbose_name='展示状态')
     online = models.CharField(max_length=1, choices=[('1', '上线'), ('0', '下线')], default=0, verbose_name='上线状态')
-    rec = models.CharField(max_length=1, choices=[('1', '上线'), ('0', '下线')], default=0, verbose_name='置顶状态')
+    rec = models.CharField(max_length=1, choices=[('1', '推荐'), ('0', '不推荐')], default=0, verbose_name='热推榜')
     honor = models.CharField(max_length=150, null=True, verbose_name='头衔')
     experience = models.CharField(max_length=1000, null=True, verbose_name='经验')
     wechat = models.CharField(max_length=90, null=True, verbose_name='微信号')

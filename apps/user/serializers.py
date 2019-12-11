@@ -62,8 +62,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'avatar','realname', 'nickname', 'openid', 'seconds',
-                  'sex', 'type','year', 'teacher')
+        fields = ('id', 'avatar', 'nickname', 'openid', 'type', 'teacher')
 
     def get_teacher(self, obj):
         teacher = Teachers.objects.filter(mid=obj.id, status= 1)

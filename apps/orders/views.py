@@ -113,6 +113,37 @@ class NotifyWechatViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
                 datas['data']['keyword2']['value'] = '待评价'
                 content = json.dumps(datas)
                 requests.post('https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s' % (ACCESS_TOKEN),content)
+            elif type == 'judan':
+                datas = {
+                    "touser": '',
+                    "template_id": "EnDnS7Sm4a1eVMQ3bkqWit0jN8iN_nOIFbGagKaN5Pc",
+                    "url": '',
+                    "topcolor": "#FF0000",
+                    "data": {
+                        "first": {
+                            "value": "老师已拒单，费用72小时退款到您微信钱包。可预约其他老师看看哦～",
+                            "color": "#173177"
+                        },
+                        "keyword1": {
+                            "value": "",
+                            "color": "#173177"
+                        },
+                        "keyword2": {
+                            "value": "",
+                            "color": "#173177"
+                        },
+                        "remark": {
+                            "value": "如有疑问，请公众号中回复关键词“客服”，联系客服。",
+                            "color": "#173177"
+                        },
+                    }
+                }
+                pass
+                datas['touser'] = OPENID
+                datas['url'] = URL
+                datas['data']['keyword1']['value'] = TITLE
+                datas['data']['keyword2']['value'] = '已拒单'
+                content = json.dumps(datas)
         return Response({'status':200001}, status=status.HTTP_200_OK)
 
 
@@ -289,19 +320,26 @@ class CommentsViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
             for key, value in enumerate(serializer.data):
                 test = value['teacher']['id']
                 pid = value['pid']
-                print(test == int(teacher))
-                if key < 10 and value['type'] == type and value['teacher']['id']==int(teacher) and value['status'] == '5':
+                if self.statusIsok(value['teacher']['id']) and key < 10 and value['type'] == type\
+                        and value['teacher']['id']==int(teacher) and value['status'] == '5':
                     list.append(serializer.data[key])
         elif guangyiguang and type=="product":
             for key, value in enumerate(serializer.data):
-                if key < 10 and value['type'] == type and value['pid'] == int(guangyiguang)  and value['status'] == '1':
+                if self.statusIsok(value['teacher']['id']) and key < 10 and value['type'] == type\
+                        and value['pid'] == int(guangyiguang)  and value['status'] == '1':
                     list.append(serializer.data[key])
         else:
             for key, value in enumerate(serializer.data):
-                if len(value['comments']) >= 1 and value['ganxie'] == '1' and key < 10  and value['status'] == '5':
+                if self.statusIsok(value['teacher']['id']) and len(value['comments']) >= 1 \
+                        and value['ganxie'] == '1' and key < 10  and value['status'] == '5':
                     list.append(serializer.data[key])
 
         return Response(list)
+
+    def statusIsok(self,teacher_id):
+        teacher = Teachers.objects.get(id=teacher_id)
+        status = True if teacher.status == '1' else False
+        return status
 
 
 class WithdrawViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,

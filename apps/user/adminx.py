@@ -12,7 +12,7 @@ class UsersAdmin(object):
 
 class UserProfileAdmin(object):
     """用来显示用户相关"""
-    list_display = ('username','nickname','wechat','created')
+    list_display = ('nickname','username','created')
 
 
 class LoginViewAdmin(LoginView):

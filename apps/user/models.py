@@ -23,6 +23,7 @@ class UserProfile(AbstractUser):
     openid = models.CharField(max_length=28, verbose_name='OPENID', blank=True, null=True)
     wechat = models.CharField(max_length=30, null=True, verbose_name='微信号', blank=True)
     upto = models.CharField(max_length=30, null=True, verbose_name='上级', default='0', blank=True)
+    shareurl = models.CharField(max_length=200, null=True, verbose_name='来源链接', default='0', blank=True)
     sharetime = models.CharField(max_length=30, null=True, verbose_name='分享时间', default='0', blank=True)
     bindtime = models.CharField(max_length=30, null=True, verbose_name='绑定时间', default='0', blank=True)
     # 是否更新过头像

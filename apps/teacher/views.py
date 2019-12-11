@@ -45,7 +45,7 @@ class TeacherViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
     pagination_class = CommonPagination  # 分页
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     # 排序 rank 人气榜（感谢数/总已完成订单数） rec_status 热推榜(rec字段--置顶状态) uptated 新晋榜
-    ordering_fields = ('rec', 'updated', 'haopinglv', 'price')
+    ordering_fields = ('updated', 'haopinglv', 'price')
     filter_fields = ('type', 'mid_id')
     # 搜索 在search_fields中加入一个外键的名字是不能查询的,要写成(外键名__外键中的字段名)的形式.
     search_fields = ['experience', 'realname', 'honor', 'resume', 'type__title', 'mid__nickname']
@@ -58,12 +58,17 @@ class TeacherViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         list = []
+        m = self.request.query_params.get('m', '')
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             for key,value in enumerate(serializer.data):
-                if serializer.data[key]['data']['services_count']:
-                    list.append(serializer.data[key])
+                if m == 'rec':
+                    if value['data']['services_count'] and value['rec'] == '1':
+                        list.append(serializer.data[key])
+                else:
+                    if serializer.data[key]['data']['services_count']:
+                        list.append(serializer.data[key])
             return self.get_paginated_response(list)
 
         serializer = self.get_serializer(queryset, many=True)
