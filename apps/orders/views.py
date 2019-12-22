@@ -204,6 +204,44 @@ class OrdersListViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        # 如果是套餐taocan > 0且 status=4，则根据out_trade_no 找到 kaiqi = 2（等待上一个订单结束） 的第一个，
+        # 将它变为0，设置成前台可以进行开启操作
+        if 'kaiqi' in request.data and 'taocan' in request.data and 'out_trade_no' in request.data:
+            # 找到三个订单，这个订单的前一个是否完成。可以根据 out_trade_no 和 套餐taocan 来定位
+            # 比如 点击了 taocan=2,则查询 taocan=1的状态，如果是taocan=3,查询taocan=2
+            taocan = request.data['taocan'] - 1
+            order_info = Orders.objects.get(out_trade_no=request.data['out_trade_no'], taocan=taocan)
+            status = order_info.status
+            if order_info.status == '4' or order_info.status == '5':
+                # 可以开启
+                return Response({'msg': 'SUCCESS'})
+
+        if 'out_trade_no' in request.data and request.data['taocan'] > 0:
+            order_info = Orders.objects.filter(out_trade_no=request.data['out_trade_no'],kaiqi=2)
+            if order_info:
+                current = order_info[0]
+                Orders.objects.filter(id=current.id).update(kaiqi=0)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
 
 class IncomeViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
                      mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin,
@@ -231,26 +269,31 @@ class IncomeViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
             m = self.request.GET.get('m', '')
             serializer = self.get_serializer(page, many=True)
             if m == 'income':
+                # 老师总收入，这里将各个订单的比例重新计算后再返回
                 t = time.time()
                 now = int(t)
                 list = []
                 sum = float(0)
                 for key, value in enumerate(serializer.data):
-                    dt = serializer.data[key]['created']
+                    dt = value['created']
+                    proportion= float(value['proportion']) * float(value['price'])
+                    proportionPrice= float('%.2f' % proportion)
                     ts = int(time.mktime(time.strptime(dt, '%Y-%m-%d')))
-                    if now - ts > 1 and serializer.data[key]['status'] == '5':
-                        sum = sum + float(serializer.data[key]['price'])
-                        list.append({'price':serializer.data[key]['price']})
+                    if now - ts > 1 and value['status'] >= '4':
+                        sum = sum + proportionPrice
+                        list.append({'price':proportionPrice})
                 return self.get_paginated_response({'sum':sum,'list':list})
             elif m == 'pay':
                 cash = float('0')
                 for key, value in enumerate(serializer.data):
+                    proportion= float(value['proportion']) * float(value['price'])
+                    proportionPrice= float('%.2f' % proportion)
                     if serializer.data[key]['status'] == '2':
-                        cash = cash - float(serializer.data[key]['price'])
+                        cash = cash - proportionPrice
                     elif serializer.data[key]['status'] == '0' or serializer.data[key]['status'] == '1':
                         cash = cash
                     else:
-                        cash = cash + float(serializer.data[key]['price'])
+                        cash = cash + proportionPrice
 
                 return self.get_paginated_response({'cash':cash,'list':serializer.data})
 
@@ -356,7 +399,7 @@ class WithdrawViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
 
 
 class TuikuanViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    # 用户退款，超过72小时，订单为老师未接单（待接单状态），则系统自动退款
+    # 用户退款，超过72小时，订单为老师未接单（待接单状态,拒单），则系统自动退款
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, authentication.SessionAuthentication)
     serializer_class = OrdersSerializer
@@ -419,7 +462,8 @@ class TuikuanViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class JiekuanViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    # 老师结款
+    # 从withdraw 中得到数据， 给符合条件的老师进行结款，按照金额的40%（后台可以自定义）给老师
+    # 结款的数据 主要来源于 老师申请结算时，那一刻的分成比例
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, authentication.SessionAuthentication)
     serializer_class = WithdrawSerializer
@@ -459,7 +503,7 @@ class JiekuanViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.Ge
                       "&nonce_str={}&openid={}&partner_trade_no={}&spbill_create_ip={}".format(
                 amount, desc, Config.APPID, Config.MCH_ID, nonce_str, openid, partner_trade_no, spbill_create_ip)
             # 第二步：拼接API密钥：
-            stringSignTemp = stringA + "&key={}".format(Config.API_KEY)  # 注：key为商户平台设置的密钥key
+            # stringSignTemp = stringA + "&key={}".format(Config.API_KEY)  # 注：key为商户平台设置的密钥key
             sign = hashlib.md5(stringSignTemp.encode(encoding='utf-8')).hexdigest().upper()
             # 3 配置 XML
             xml = "<xml>" \

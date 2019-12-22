@@ -1,9 +1,7 @@
-from datetime import datetime
 from django.db import models
 from apps.user.models import UserProfile
 from apps.teacher.models import Teachers
-from DjangoUeditor.models import UEditorField
- 
+
 
 class Category(models.Model):
     """
@@ -33,6 +31,7 @@ class List(models.Model):
     mid = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='shop_userProfile',
                             null=True, blank=True, verbose_name="老师昵称")
     sort = models.IntegerField(default=0, verbose_name='排序')
+    proportion = models.DecimalField(default='0.40', decimal_places=2, max_digits=15, verbose_name='分成比例（%）')
     status = models.CharField(max_length=1, choices=[('1', '显示'), ('0', '不显示')], verbose_name='状态', default=0)
     cover = models.CharField(max_length=140, blank=True, null=True,  verbose_name='封面图')
     big =  models.CharField(max_length=140, blank=True, null=True,  verbose_name='大图')

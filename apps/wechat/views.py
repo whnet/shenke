@@ -51,11 +51,11 @@ class WechatNotifyView(APIView):
         # 根据 out_trade_no 更新数据库
         try:
             if data['result_code'] == 'SUCCESS':
-                order = Orders.objects.get(out_trade_no=out_trade_no)
+                order = Orders.objects.get(out_trade_no=out_trade_no,status=0)
                 order.status = 1 # 将状态改成待接单
                 order.save()
                 # 支付成功后 判断是否要生成另外两个相同的订单，状态为支付，并标记为 taocan 为1
-                if order.belong != '0':
+                if order.belong != '0' and order.status == 1:
                     count = 0
                     while True:
                         count = count + 1
@@ -64,10 +64,11 @@ class WechatNotifyView(APIView):
                         order_add.price = order.price
                         order_add.type = order.type
                         order_add.out_trade_no = order.out_trade_no
+                        order_add.belong = order.belong
                         order_add.status = 1
                         order_add.detail = order.detail
-                        order_add.taocan = 1
-                        order_add.kaiqi = 0
+                        order_add.taocan = count+1
+                        order_add.kaiqi = 2
                         order_add.comments = order.comments
                         order_add.mid_id = order.mid_id
                         order_add.teacher_id = order.teacher_id
@@ -75,6 +76,10 @@ class WechatNotifyView(APIView):
                         order_add.pid = order.pid
                         order_add.save()
                         if count == 2:
+                            order = Orders.objects.get(out_trade_no=out_trade_no, status=0)
+                            order.taocan = 1
+                            order.title = order.title + '套餐1'
+                            order.save()
                             break
                 # 支付成功后 生成另外两个相同的订单，状态为支付 END
                 # 可以选择这里实现订单成功后发送模板消息，给老师去发送
@@ -87,9 +92,7 @@ class WechatNotifyView(APIView):
                 ACCESS_TOKEN = cache.get('access_token')
                 # 老师公众号收到提醒
                 teacher = UserProfile.objects.get(pk=order.tomember_id)
-                openid = teacher.openid
-                getInfoRequest = requests.get('https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN' % (
-                    ACCESS_TOKEN, teacher.openid))
+                getInfoRequest = requests.get('https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN' % (ACCESS_TOKEN, teacher.openid))
                 subscribe = json.loads(getInfoRequest.text)['subscribe']
                 if subscribe == 1:
                     datas = {
@@ -123,7 +126,6 @@ class WechatNotifyView(APIView):
                     datas['data']['keyword2']['value'] = time.strftime("%Y-%m-%d", time.localtime())
                     content = json.dumps(datas)
                     requests.post('https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s' % (ACCESS_TOKEN), content)
-
                 # 客户公众号收到提醒
                 user = UserProfile.objects.get(pk=order.mid_id)
                 getInfoRequest = requests.get(

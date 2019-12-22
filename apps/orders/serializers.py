@@ -46,6 +46,7 @@ class ChatlogsSerializer(serializers.ModelSerializer):
         model = Orders
         fields = ('chatrecord',)
 
+
 class ChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Orders
@@ -75,6 +76,7 @@ class WithdrawSerializer(serializers.ModelSerializer):
     class Meta:
         model =  Withdraw
         fields = ('sum','member','openid','price')
+
 
 class OrdersSerializer(serializers.ModelSerializer):
     # 关联查询对应的ID

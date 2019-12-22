@@ -169,3 +169,15 @@ class ServiceViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
 
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filter_fields = ('tid', )
+
+    # 设置套餐后，将它的sort 设置成1，根据belong更新
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        # 更新宿主订单
+        belong = request.data['belong']
+        if belong:
+            Services.objects.filter(id=belong).update(sort=1,)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

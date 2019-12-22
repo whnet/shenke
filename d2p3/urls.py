@@ -24,7 +24,6 @@ from rest_framework_jwt.views import obtain_jwt_token
 import xadmin
 from apps.ads.views import AdsListViewSet
 from apps.managefiles.views import UploadViewSet,UploadShopViewSet
-from apps.orders.views import CommentsViewSet
 from apps.orders.views import *
 from apps.shop.views import ShopViewSet, CategoryListViewSet
 from apps.teacher.views import TeacherViewSet, CategoryViewSet, ServiceViewSet,UpdateTeacherViewSet

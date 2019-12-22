@@ -71,6 +71,7 @@ class Services(models.Model):
                                 null=True, blank=True, verbose_name="老师昵称")
     tid = models.ForeignKey(Teachers, on_delete=models.CASCADE, related_name='teacher_user',
                                 null=True, blank=True, verbose_name="所属老师")
+    proportion = models.DecimalField(default='0.40', decimal_places=2, max_digits=15, verbose_name='分成比例（%）')
     sort = models.IntegerField(default=0, null=True, blank=True, verbose_name='套餐个数')
     belong = models.CharField(max_length=50, null=True, blank=True, verbose_name='所属服务')
     price = models.DecimalField(default=0, decimal_places=2, max_digits=15, verbose_name='服务价格')

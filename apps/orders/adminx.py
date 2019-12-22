@@ -6,7 +6,7 @@ class OrderAdmin(object):
     """
     订单管理
     """
-    list_display = ('title', 'teacher', 'price', 'status')  # 显示
+    list_display = ('title', 'teacher', 'price', 'proportion', 'status')  # 显示
     search_fields = ('title', 'chatrecord',)  # 搜索
     list_filter = ('status',)  # 过滤
     exclude = ['chat','type'] # 设置详情页面不显示某个字段

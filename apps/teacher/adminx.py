@@ -32,8 +32,8 @@ class ServicesAdmin(object):
     """
     服务项目
     """
-    list_display = ('title', 'price', 'tid', 'mid')
-    search_fields = ('title', 'tid', 'mid')
+    list_display = ('title', 'price', 'tid', 'mid', 'proportion')
+    search_fields = ('title', 'tid__realname', 'mid__nickname')
     # 设置详情页面不显示某个字段
     exclude=['sort', 'belong']
 
