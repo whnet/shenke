@@ -55,14 +55,20 @@ class ChatSerializer(serializers.ModelSerializer):
 
 class JifenSerializer(serializers.ModelSerializer):
     sum = serializers.SerializerMethodField()
+    # price 应该乘以各自的分成比例 price = proportion * price
+    # price = serializers.SerializerMethodField()
+    created = serializers.DateTimeField(format="%Y-%m-%d", required=False, read_only=True)
 
     def get_sum(self, obj):
         result = Orders.objects.filter(mid_id=obj.mid,status=5).order_by('id').aggregate(data=Sum('price'))
         return result['data']
 
+    def get_price(self, obj):
+        return obj.price * obj.proportion
+
     class Meta:
         model = Orders
-        fields = ('price','sum')
+        fields = '__all__'
 
 
 class WithdrawSerializer(serializers.ModelSerializer):
@@ -78,6 +84,27 @@ class WithdrawSerializer(serializers.ModelSerializer):
         fields = ('sum','member','openid','price')
 
 
+class OrdersfenchengSerializer(serializers.ModelSerializer):
+    # 关联查询对应的ID
+    teacher_name = serializers.CharField(source='teacher.realname')
+    buy_name = serializers.CharField(source='mid.nickname')
+    price = serializers.SerializerMethodField()
+    # 直接格式化输出的时间格式
+    created = serializers.DateTimeField(format="%Y-%m-%d", required=False, read_only=True)
+
+    def get_price(self, obj):
+        if obj.status == '-1':
+            price = '0.00'
+        else:
+            price = obj.price * obj.proportion
+
+        return price
+
+    class Meta:
+        model = Orders
+        fields = '__all__'
+
+
 class OrdersSerializer(serializers.ModelSerializer):
     # 关联查询对应的ID
     teacher_name = serializers.CharField(source='teacher.realname')
@@ -88,7 +115,6 @@ class OrdersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Orders
         fields = '__all__'
-
 
 class CommentSerializer(serializers.ModelSerializer):
     # 只更新指定字段

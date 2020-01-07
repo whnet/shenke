@@ -51,9 +51,8 @@ class TeacherDetailSerializer(serializers.ModelSerializer):
     data = serializers.SerializerMethodField()
 
     def get_data(self, obj):
-        jieda = Orders.objects.filter(teacher=obj.id,status=5).count()
-        ganxie = Orders.objects.filter(teacher=obj.id,ganxie=1,status=5).count()
-        # 找到服务中价格最小的
+        jieda = Orders.objects.filter(Q(teacher=obj.id) & ~Q(status='-1')).count()
+        ganxie = Orders.objects.filter(Q(teacher=obj.id) & ~Q(status='-1') & Q(ganxie=1)).count()
         services_count = Services.objects.filter(tid_id=obj.id).count()
         if services_count:
             service = Services.objects.filter(tid_id=obj.id).order_by('price').values()
@@ -63,7 +62,7 @@ class TeacherDetailSerializer(serializers.ModelSerializer):
         data = {
             'jieda': jieda,
             'ganxie': ganxie,
-            'price':price,
+            'price':'%.2f' % price,
             'services_count': services_count
         }
         return data

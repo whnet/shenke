@@ -144,6 +144,8 @@ class NotifyWechatViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
                 datas['data']['keyword1']['value'] = TITLE
                 datas['data']['keyword2']['value'] = '已拒单'
                 content = json.dumps(datas)
+                requests.post(
+                    'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s' % (ACCESS_TOKEN), content)
         return Response({'status':200001}, status=status.HTTP_200_OK)
 
 
@@ -157,8 +159,8 @@ class ShareOrdersListViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
     serializer_class = OrdersSerializer
 
     def get_queryset(self):
-        # 状态不能为0，2，6
-        return Orders.objects.filter(Q(upto=self.request.user.openid) & ~Q(status=0) & ~Q(status=2) & ~Q(status=6)).order_by("-id")
+        # 状态不能为0，2，-1
+        return Orders.objects.filter(Q(upto=self.request.user.openid) & ~Q(status='0') & ~Q(status='2') & ~Q(status='-1')).order_by("-id")
 
 
 class OrdersListViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
@@ -255,7 +257,7 @@ class IncomeViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
 
     def get_serializer_class(self):
         if self.request.GET.get('m',''):
-            return OrdersSerializer
+            return OrdersfenchengSerializer
         return OrdersSerializer
 
     def get_queryset(self):
@@ -279,6 +281,7 @@ class IncomeViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
                     proportion= float(value['proportion']) * float(value['price'])
                     proportionPrice= float('%.2f' % proportion)
                     ts = int(time.mktime(time.strptime(dt, '%Y-%m-%d')))
+                    # 7 天后 now - ts > 604800
                     if now - ts > 1 and value['status'] >= '4':
                         sum = sum + proportionPrice
                         list.append({'price':proportionPrice})

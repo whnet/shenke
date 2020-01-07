@@ -22,8 +22,8 @@ class Orders(models.Model):
                               verbose_name='状态', default=0)
     proportion = models.DecimalField(default='0.40', decimal_places=2, max_digits=15, verbose_name='分成比例（%）')
     detail = models.TextField(max_length=1000, verbose_name='订单备注', blank=True, default='')
-    ganxie = models.CharField(max_length=1,choices=[('0', '未感谢'), ('1', '已感谢')],verbose_name='是否感谢', default=0)
-    belong = models.CharField(max_length=100,choices=[('0', '非套餐'), ('1', '套餐')],verbose_name='是否感谢', default=0)
+    ganxie = models.CharField(max_length=1,choices=[('0', '未感谢'), ('1', '已感谢')],verbose_name='是否感谢', default='0')
+    belong = models.CharField(max_length=100,choices=[('0', '否'), ('1', '是')],verbose_name='是否属于某套餐', default='0')
     taocan = models.IntegerField(default=0, verbose_name='是否是套餐')
     kaiqi = models.IntegerField(default=0, verbose_name='是否开启订单')
     pid = models.IntegerField(default=0, verbose_name='所属问题')
@@ -40,6 +40,7 @@ class Orders(models.Model):
 
 
 class Withdraw(models.Model):
+    # 关联提现用户，但无法关联提现订单，它们没有联系
     STATUS_CHOICE = [('0', '未打款'), ('1', '已结款')]
     member = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='withdraw_userProfile',
                                 null=True, blank=True, verbose_name="提现用户")

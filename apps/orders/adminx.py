@@ -6,12 +6,12 @@ class OrderAdmin(object):
     """
     订单管理
     """
-    list_display = ('title', 'teacher', 'price', 'proportion', 'status')  # 显示
+    list_display = ('title', 'mid', 'teacher', 'price', 'proportion', 'status', 'created')  # 显示
     search_fields = ('title', 'chatrecord',)  # 搜索
     list_filter = ('status',)  # 过滤
     exclude = ['chat','type'] # 设置详情页面不显示某个字段
     style_fields = {"chat": "ueditor"}
-    readonly_fields = ['type', 'status']
+    # readonly_fields = ['type', 'status']
 
 
 class WithdrawAdmin(object):

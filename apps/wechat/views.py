@@ -1,10 +1,10 @@
 from django.views.generic import View
 from django.http import HttpResponse, HttpResponseServerError
 import json
+from django.db.models import Q
 
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_jwt.serializers import jwt_payload_handler, jwt_encode_handler
-from rest_framework.response import Response
 from rest_framework import mixins
 from rest_framework import viewsets, status
 from django.contrib.auth import get_user_model
@@ -49,126 +49,132 @@ class WechatNotifyView(APIView):
         data = request.data
         out_trade_no = data['out_trade_no']
         # 根据 out_trade_no 更新数据库
-        try:
-            if data['result_code'] == 'SUCCESS':
-                order = Orders.objects.get(out_trade_no=out_trade_no,status=0)
-                order.status = 1 # 将状态改成待接单
-                order.save()
-                # 支付成功后 判断是否要生成另外两个相同的订单，状态为支付，并标记为 taocan 为1
-                if order.belong != '0' and order.status == 1:
-                    count = 0
-                    while True:
-                        count = count + 1
-                        order_add = Orders()
-                        order_add.title = order.title + '套餐' + str(count+1)
-                        order_add.price = order.price
-                        order_add.type = order.type
-                        order_add.out_trade_no = order.out_trade_no
-                        order_add.belong = order.belong
-                        order_add.status = 1
-                        order_add.detail = order.detail
-                        order_add.taocan = count+1
-                        order_add.kaiqi = 2
-                        order_add.comments = order.comments
-                        order_add.mid_id = order.mid_id
-                        order_add.teacher_id = order.teacher_id
-                        order_add.tomember_id = order.tomember_id
-                        order_add.pid = order.pid
-                        order_add.save()
-                        if count == 2:
-                            order = Orders.objects.get(out_trade_no=out_trade_no, status=0)
-                            order.taocan = 1
-                            order.title = order.title + '套餐1'
-                            order.save()
-                            break
-                # 支付成功后 生成另外两个相同的订单，状态为支付 END
-                # 可以选择这里实现订单成功后发送模板消息，给老师去发送
-                '''
-                首先要判断是否关注了公众号
-                第一步：获取模版ID
-                第二步：请求接口 POST请求 https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=ACCESS_TOKEN
-                文档如下：https://mp.weixin.qq.com/advanced/tmplmsg?action=faq&token=19356833&lang=zh_CN
-                '''
-                ACCESS_TOKEN = cache.get('access_token')
-                # 老师公众号收到提醒
-                teacher = UserProfile.objects.get(pk=order.tomember_id)
-                getInfoRequest = requests.get('https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN' % (ACCESS_TOKEN, teacher.openid))
-                subscribe = json.loads(getInfoRequest.text)['subscribe']
-                if subscribe == 1:
-                    datas = {
-                        "touser": '',
-                        "template_id": "0V16YmAZ-8_04rxp92bPkRtcwgeVnjv8MdbGAShhbro",
-                        "url": "",
-                        "topcolor": "#FF0000",
-                        "data": {
-                            "first": {
-                                "value": "感谢您选择菩提树，客户刚预约了您的服务，请尽快【接单】。72小时未回复系统自动退款。",
-                                "color": "#173177"
-                            },
-                            "keyword1": {
-                                "value": '',
-                                "color": "#173177"
-                            },
-                            "keyword2": {
-                                "value": '',
-                                "color": "#173177"
-                            },
-                            "remark": {
-                                "value": "点击这里进入订单页",
-                                "color": "#ef0606"
-                            },
-                        }
-                    }
-                    pass
-                    datas['touser'] = teacher.openid
-                    datas['url'] = 'http://vip.putishu.ren/#/myordertaking'
-                    datas['data']['keyword1']['value'] = order.title
-                    datas['data']['keyword2']['value'] = time.strftime("%Y-%m-%d", time.localtime())
-                    content = json.dumps(datas)
-                    requests.post('https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s' % (ACCESS_TOKEN), content)
-                # 客户公众号收到提醒
-                user = UserProfile.objects.get(pk=order.mid_id)
-                getInfoRequest = requests.get(
-                    'https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN' % (
-                    ACCESS_TOKEN, user.openid))
-                subscribeUser = json.loads(getInfoRequest.text)['subscribe']
-                if subscribeUser == 1:
-                    datas = {
-                        "touser": '',
-                        "template_id": "0V16YmAZ-8_04rxp92bPkRtcwgeVnjv8MdbGAShhbro",
-                        "url": "",
-                        "topcolor": "#FF0000",
-                        "data": {
-                            "first": {
-                                "value": "感谢您选择菩提树，老师正在接单的路上，请耐心等待如72小时未回复会原路退款",
-                                "color": "#173177"
-                            },
-                            "keyword1": {
-                                "value": '',
-                                "color": "#173177"
-                            },
-                            "keyword2": {
-                                "value": '',
-                                "color": "#173177"
-                            },
-                            "remark": {
-                                "value": "如有疑问，请公众号中回复关键词“客服”，联系客服。点击这里进入订单页",
-                                "color": "#173177"
-                            },
-                        }
-                    }
-                    pass
-                    datas['touser'] = user.openid
-                    datas['url'] = 'http://vip.putishu.ren/#/myorders'
-                    datas['data']['keyword1']['value'] = order.title
-                    datas['data']['keyword2']['value'] = time.strftime("%Y-%m-%d", time.localtime())
-                    content = json.dumps(datas)
-                    requests.post('https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s' % (ACCESS_TOKEN), content)
-                return HttpResponse('success', status=status.HTTP_200_OK)
+        if data['result_code'] == 'SUCCESS':
+            order = Orders.objects.get(out_trade_no=out_trade_no,status='0')
+            # 支付成功后 判断是否要生成另外两个相同的订单，状态为支付，并标记为 taocan 为1
+            if order.belong != '0' and order.status=='0':
+                count = 0
+                while True:
+                    count = count + 1
+                    order_add = Orders()
+                    order_add.title = order.title + '套餐' + str(count+1)
+                    order_add.price = order.price
+                    order_add.type = order.type
+                    order_add.out_trade_no = order.out_trade_no
+                    order_add.belong = order.belong
+                    order_add.status = 1
+                    order_add.detail = order.detail
+                    order_add.taocan = count+1
+                    order_add.kaiqi = 2
+                    order_add.comments = order.comments
+                    order_add.mid_id = order.mid_id
+                    order_add.teacher_id = order.teacher_id
+                    order_add.tomember_id = order.tomember_id
+                    order_add.pid = order.pid
+                    order_add.save()
+                    if count == 2:
+                        order.status = 1
+                        order.taocan = 1
+                        order.title = order.title + '套餐1'
+                        order.save()
+                        break
             else:
-                return Response('error', status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            return Exception
+                order.status = 1
+                order.save()
+            # 支付成功后 生成另外两个相同的订单，状态为支付 END
+            # 可以选择这里实现订单成功后发送模板消息，给老师去发送
+            '''
+            首先要判断是否关注了公众号
+            第一步：获取模版ID
+            第二步：请求接口 POST请求 https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=ACCESS_TOKEN
+            文档如下：https://mp.weixin.qq.com/advanced/tmplmsg?action=faq&token=19356833&lang=zh_CN
+            '''
+            ACCESS_TOKEN = cache.get('access_token')
+            # 老师公众号收到提醒
+            teacher = UserProfile.objects.get(pk=order.tomember_id)
+            getInfoRequest = requests.get('https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN' % (ACCESS_TOKEN, teacher.openid))
+            subscribe = json.loads(getInfoRequest.text)['subscribe']
+            if subscribe == 1:
+                datas = {
+                    "touser": '',
+                    "template_id": "0V16YmAZ-8_04rxp92bPkRtcwgeVnjv8MdbGAShhbro",
+                    "url": "",
+                    "topcolor": "#FF0000",
+                    "data": {
+                        "first": {
+                            "value": "感谢您选择菩提树，客户刚预约了您的服务，请尽快【接单】。72小时未回复系统自动退款。",
+                            "color": "#173177"
+                        },
+                        "keyword1": {
+                            "value": '',
+                            "color": "#173177"
+                        },
+                        "keyword2": {
+                            "value": '',
+                            "color": "#173177"
+                        },
+                        "remark": {
+                            "value": "点击这里进入订单页",
+                            "color": "#ef0606"
+                        },
+                    }
+                }
+                pass
+                datas['touser'] = teacher.openid
+                datas['url'] = 'http://vip.putishu.ren/#/myordertaking'
+                datas['data']['keyword1']['value'] = order.title
+                datas['data']['keyword2']['value'] = time.strftime("%Y-%m-%d", time.localtime())
+                content = json.dumps(datas)
+                result1 = requests.post('https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s' % (ACCESS_TOKEN), content)
+            # 客户公众号收到提醒
+            user = UserProfile.objects.get(pk=order.mid_id)
+            getInfoRequest = requests.get(
+                'https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN' % (
+                ACCESS_TOKEN, user.openid))
+            subscribeUser = json.loads(getInfoRequest.text)['subscribe']
+            if subscribeUser == 1:
+                datas = {
+                    "touser": '',
+                    "template_id": "0V16YmAZ-8_04rxp92bPkRtcwgeVnjv8MdbGAShhbro",
+                    "url": "",
+                    "topcolor": "#FF0000",
+                    "data": {
+                        "first": {
+                            "value": "感谢您选择菩提树，老师正在接单的路上，请耐心等待如72小时未回复会原路退款",
+                            "color": "#173177"
+                        },
+                        "keyword1": {
+                            "value": '',
+                            "color": "#173177"
+                        },
+                        "keyword2": {
+                            "value": '',
+                            "color": "#173177"
+                        },
+                        "remark": {
+                            "value": "如有疑问，请公众号中回复关键词“客服”，联系客服。点击这里进入订单页",
+                            "color": "#173177"
+                        },
+                    }
+                }
+                pass
+                datas['touser'] = user.openid
+                datas['url'] = 'http://vip.putishu.ren/#/myorders'
+                datas['data']['keyword1']['value'] = order.title
+                datas['data']['keyword2']['value'] = time.strftime("%Y-%m-%d", time.localtime())
+                content = json.dumps(datas)
+                result2 = requests.post('https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s' % (ACCESS_TOKEN), content)
+            # 响应微信的请求
+            resp = '''
+            <xml>
+              <return_code><![CDATA[SUCCESS]]></return_code>
+              <return_msg><![CDATA[OK]]></return_msg>
+            </xml>
+            '''
+            return HttpResponse(resp, content_type="text/xml")
+        else:
+            resp = {'msg': 'error'}
+            return HttpResponse(json.dumps(resp), content_type="application/json")
 
 
 class WechatViewSet(View):
@@ -311,6 +317,7 @@ class OrderPayViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.R
                                   belong= request.data['belong'],
                                   mid_id = userInfo.id,
                                   upto = upto,
+                                  kaiqi = 1,
                                   tomember_id = request.data['tomember_id'],
                                   status = 0 if total_fee != 0 else 1, # 1为已付款状态和待接单的状态
                                   teacher_id = tid,

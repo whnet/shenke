@@ -40,15 +40,17 @@ class TeacherViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
     #filter() 等方法中的关键字参数查询都是一起进行“AND” 的。 如果你需要执行更复杂的查询（例如OR 语句），你可以使用Q 对象。
     # queryset = Teachers.objects.all().filter(~Q(status=2)).order_by("-id")
 
-    # 状态为通过 且 服务项目不能为空的 才在前台显示
-    queryset = Teachers.objects.filter(status=1).order_by("-id")
+    # 状态为通过 且 服务项目不能为空的 才在前台显示，通过参数控制
     pagination_class = CommonPagination  # 分页
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     # 排序 rank 人气榜（感谢数/总已完成订单数） rec_status 热推榜(rec字段--置顶状态) uptated 新晋榜
-    ordering_fields = ('updated', 'haopinglv', 'price')
+    ordering_fields = ('updated',)
     filter_fields = ('type', 'mid_id')
     # 搜索 在search_fields中加入一个外键的名字是不能查询的,要写成(外键名__外键中的字段名)的形式.
     search_fields = ['experience', 'realname', 'honor', 'resume', 'type__title', 'mid__nickname']
+
+    def get_queryset(self):
+        return Teachers.objects.filter(status='1').order_by("-id")
 
     def get_serializer_class(self):
         if self.action == "retrieve" or self.action == "list":
@@ -61,15 +63,40 @@ class TeacherViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
         m = self.request.query_params.get('m', '')
         page = self.paginate_queryset(queryset)
         if page is not None:
+            sort = self.request.query_params.get('sort', '')
             serializer = self.get_serializer(page, many=True)
-            for key,value in enumerate(serializer.data):
-                if m == 'rec':
-                    if value['data']['services_count'] and value['rec'] == '1':
-                        list.append(serializer.data[key])
-                else:
-                    if serializer.data[key]['data']['services_count']:
-                        list.append(serializer.data[key])
-            return self.get_paginated_response(list)
+            if sort:
+                # revers = False 正序排序
+                if sort == 'haopinglv':
+                    serializer_data = sorted(
+                        serializer.data, key=lambda k: k['data']['ganxie'], reverse=True)
+                elif sort== '-haopinglv':
+                    serializer_data = sorted(
+                        serializer.data, key=lambda k: k['data']['ganxie'], reverse=False)
+                elif sort== 'price':
+                    serializer_data = sorted(
+                        serializer.data, key=lambda k: k['data']['price'], reverse=True)
+                elif sort== '-price':
+                    serializer_data = sorted(
+                        serializer.data, key=lambda k: k['data']['price'], reverse=False)
+
+                for key, value in enumerate(serializer_data):
+                    if m == 'rec':
+                        if value['data']['services_count'] and value['rec'] == '1':
+                            list.append(serializer_data[key])
+                    else:
+                        if value['data']['services_count']:
+                            list.append(serializer_data[key])
+                return self.get_paginated_response(list)
+            else:
+                for key, value in enumerate(serializer.data):
+                    if m == 'rec':
+                        if value['data']['services_count'] and value['rec'] == '1':
+                            list.append(serializer.data[key])
+                    else:
+                        if value['data']['services_count']:
+                            list.append(serializer.data[key])
+                return self.get_paginated_response(list)
 
         serializer = self.get_serializer(queryset, many=True)
         for key, value in enumerate(serializer.data):

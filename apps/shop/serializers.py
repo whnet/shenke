@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models import *
 from apps.orders.models import *
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 User = get_user_model()
 
 
@@ -29,8 +30,8 @@ class ShopSerializer(serializers.ModelSerializer):
     data = serializers.SerializerMethodField()
 
     def get_data(self, obj):
-        buy = Orders.objects.filter(teacher=obj.id,status=5).count()
-        ganxie = Orders.objects.filter(teacher=obj.id,status=5,ganxie=1).count()
+        buy = Orders.objects.filter(Q(pid=obj.id) & ~Q(status='-1')).count()
+        ganxie = Orders.objects.filter(Q(pid=obj.id) & ~Q(status='-1') & Q(ganxie=1)).count()
         data = {
             'buy': buy,
             'ganxie': ganxie,

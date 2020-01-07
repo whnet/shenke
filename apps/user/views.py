@@ -24,7 +24,6 @@ from apps.user.serializers import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework.pagination import PageNumberPagination # 分页
-from apps.orders.models import Orders
 
 User = get_user_model()
 
@@ -113,7 +112,7 @@ class ShareViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin,
 
 class UserDetailViewSet(mixins.RetrieveModelMixin,viewsets.GenericViewSet):
     authentication_classes = (JSONWebTokenAuthentication, authentication.SessionAuthentication)
-    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    permission_classes = (IsAuthenticated, )
     serializer_class = ZiliaoSerializer
     queryset = User.objects.all()
 
