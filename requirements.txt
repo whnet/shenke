@@ -44,7 +44,7 @@ PyJWT==1.6.4
 python-dateutil==2.7.3
 python-memcached==1.59
 pytz==2018.5
-PyYAML==3.13
+PyYAML==5.4
 qiniu==7.2.6
 requests==2.19.1
 six==1.11.0
