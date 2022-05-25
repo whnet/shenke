@@ -40,7 +40,7 @@ optionaldict==0.1.1
 Pillow==5.2.0
 pycparser==2.19
 pycryptodome==3.8.2
-PyJWT==1.6.4
+PyJWT==2.4.0
 python-dateutil==2.7.3
 python-memcached==1.59
 pytz==2018.5
